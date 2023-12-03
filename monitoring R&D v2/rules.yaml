@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    release: prometheus
+  name: etcd-rules
+spec:
+  groups:
+    - name: etcd
+      rules:
+        - alert: EtcdFailure
+          expr: max without (endpoint) (sum without (instance) (up{job=~".*etcd.*"} == bool 0) or count without (To) (sum without (instance) (rate(etcd_network_peer_sent_failures_total{job=~".*etcd.*"}[2m])) > 0.01)) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Etcd instances experiencing failures"
+            description: "The maximum number of Etcd instances experiencing failures is greater than 0 for the last 10 minutes."
+
+        - alert: PrometheusTargetMissing
+          expr: up == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Prometheus target missing {{ $labels.instance }}"
+            description: "The Prometheus target {{ $labels.instance }} has been missing for more than 5 minutes."
